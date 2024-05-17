@@ -17,6 +17,9 @@
 		"typescript": "^5.2.2"
 	},
 	"dependencies": {
-		"@elgato/streamdeck": "^0.3.0"
+		"@elgato/streamdeck": "^0.3.0",
+		"date-fns": "^3.6.0",
+		"graphql": "^16.8.1",
+		"graphql-request": "^7.0.1"
 	}
 }

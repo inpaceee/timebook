@@ -1,4 +1,6 @@
 {
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "PropertyInspectorPath": "propertyInspector/tracking_pi.html",
   "Name": "Timebook",
   "Version": "0.1.0.0",
   "Author": "Progwise",
@@ -17,10 +19,10 @@
       ]
     },
     {
-      "Name": "Tracking",
+      "Name": "Time tracking",
       "UUID": "net.progwise.timebook.tracking",
       "Icon": "imgs/actions/counter/icon",
-      "Tooltip": "Gives a tracking word.",
+      "Tooltip": "Tracks time.",
       "Controllers": ["Keypad"],
       "States": [
         {
@@ -51,7 +53,7 @@
   ],
   "Nodejs": {
     "Version": "20",
-    "Debug": "enabled"
+    "Debug": "--inspect=127.0.0.1:12345"
   },
   "UUID": "net.progwise.timebook"
 }

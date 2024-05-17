@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>net.progwise.timebook PI</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css"
+    />
+    <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
+  </head>
+
+  <body>
+    <div class="sdpi-wrapper">
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Task ID</div>
+        <input
+          oninput="setSettings()"
+          class="sdpi-item-value sdProperty"
+          id="taskID"
+          value=""
+          placeholder="Enter your task ID"
+        />
+      </div>
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Access token</div>
+        <input
+          oninput="setSettings()"
+          class="sdpi-item-value sdProperty"
+          id="accessToken"
+          value=""
+          placeholder="Enter your access token"
+        />
+      </div>
+
+      <!-- <div type="select" class="sdpi-item">
+        <div class="sdpi-item-label">Change Value</div>
+        <select
+          class="sdpi-item-value select setvalueSelect"
+          onchange="sendValueToPlugin(Number(event.target.value), 'setValue')"
+        >
+          <option selected value="0">0</option>
+          <option value="1">1</option>
+        </select>
+      </div>
+      <div type="range" class="sdpi-item">
+        <div class="sdpi-item-label">Change Value</div>
+        <div class="sdpi-item-value range">
+          <input
+            class="setvalueSlider"
+            type="range"
+            min="0"
+            max="9"
+            value="0"
+            oninput="sendValueToPlugin(Number(event.target.value), 'setValue')"
+          />
+        </div>
+      </div>
+      <div type="select" class="sdpi-item">
+        <div class="sdpi-item-label">Background</div>
+        <select
+          class="sdpi-item-value select"
+          onchange="sendValueToPlugin(event.target.value, 'background-image')"
+        >
+          <option selected value="actionDefaultImage">
+            Original Background
+          </option>
+          <option value="actionDefaultImage_red">Red Background</option>
+          <option value="actionDefaultImage_blue">Blue Background</option>
+        </select>
+      </div> -->
+    </div>
+  </body>
+</html>
