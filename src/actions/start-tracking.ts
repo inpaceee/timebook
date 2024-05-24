@@ -1,7 +1,6 @@
-import {
+import streamDeck, {
   Action,
   KeyDownEvent,
-  PayloadObject,
   SingletonAction,
   WillAppearEvent,
   WillDisappearEvent,
@@ -58,15 +57,30 @@ const CurrentTaskTitleDocument = gql`
   }
 `;
 
+type TrackingSettings = {
+  taskID: string;
+  taskTitle?: string;
+};
+
+type GlobalSettings = {
+  accessToken: string;
+};
+
+// const endpoint = ''
+// const client = new GraphQLClient(endpoint)
+// await client.request(document)
+
 @action({ UUID: "net.progwise.timebook.tracking" })
-export class StartTracking extends SingletonAction {
+export class StartTracking extends SingletonAction<TrackingSettings> {
   private interval?: NodeJS.Timeout;
-  private taskTitle?: string;
-  async onWillAppear(
-    ev: WillAppearEvent<{ accessToken: string; taskID: string }>
-  ): Promise<void> {
-    const { accessToken, taskID } = ev.payload.settings;
-    const response = await request<{
+  private activeButtons = new Map<string, Action<TrackingSettings>>();
+
+  async onWillAppear(ev: WillAppearEvent<TrackingSettings>): Promise<void> {
+    const { taskID } = await ev.action.getSettings();
+    // ev.action.sendToPropertyInspector()
+    const { accessToken } =
+      await streamDeck.settings.getGlobalSettings<GlobalSettings>();
+    await request<{
       task: { title: string; id: string } | null;
     }>({
       url: "http://localhost:3000/api/graphql",
@@ -75,22 +89,17 @@ export class StartTracking extends SingletonAction {
       variables: { taskId: taskID },
     });
 
-    this.taskTitle = response.task?.title;
-
-    await this.updateCurrentTrackingTitle(ev.payload.settings, ev.action);
-
-    this.interval = setInterval(async () => {
-      await this.updateCurrentTrackingTitle(ev.payload.settings, ev.action);
-    }, 1000);
+    if (this.activeButtons.size === 0) {
+      console.log("create interval");
+      this.interval = setInterval(async () => {
+        await this.updateCurrentTrackingTitle();
+      }, 1000);
+    }
+    this.activeButtons.set(ev.action.id, ev.action);
   }
-  private async updateCurrentTrackingTitle(
-    payload: PayloadObject<{
-      accessToken: string;
-      taskID: string;
-    }>,
-    action: Action
-  ) {
-    const { accessToken } = payload;
+  private async updateCurrentTrackingTitle() {
+    const { accessToken } =
+      await streamDeck.settings.getGlobalSettings<GlobalSettings>();
     const response = await request<{
       currentTracking?: { start: string; task: { id: string } };
     }>({
@@ -116,23 +125,27 @@ export class StartTracking extends SingletonAction {
       ? parseISO(response.currentTracking.start)
       : undefined;
 
-    if (startDate && payload.taskID === response.currentTracking?.task.id) {
-      const newDifference = differenceInSeconds(new Date(), startDate);
-      action.setTitle(`${this.taskTitle}\n${getDurationString(newDifference)}`);
-    } else {
-      action.setTitle("Not\ntracking");
+    for (const action of this.activeButtons.values()) {
+      const { taskID, taskTitle } = await action.getSettings();
+      if (startDate && taskID === response.currentTracking?.task.id) {
+        const newDifference = differenceInSeconds(new Date(), startDate);
+        action.setTitle(`${taskTitle}\n${getDurationString(newDifference)}`);
+      } else {
+        action.setTitle("Not\ntracking");
+      }
     }
   }
   onWillDisappear(ev: WillDisappearEvent<object>): void | Promise<void> {
-    clearInterval(this.interval);
-    ev.action.setTitle("");
+    this.activeButtons.delete(ev.action.id);
+
+    if (this.activeButtons.size === 0) {
+      clearInterval(this.interval);
+    }
   }
 
-  private async stopCurrentTracking(
-    payload: PayloadObject<{ accessToken: string }>,
-    action: Action
-  ) {
-    const { accessToken } = payload;
+  private async stopCurrentTracking(action: Action<TrackingSettings>) {
+    const { accessToken } =
+      await streamDeck.settings.getGlobalSettings<GlobalSettings>();
     await request({
       url: "http://localhost:3000/api/graphql",
       document: StopTrackingMutationDocument,
@@ -141,10 +154,10 @@ export class StartTracking extends SingletonAction {
     action.setTitle("Not\n tracking");
   }
 
-  async onKeyDown(
-    ev: KeyDownEvent<{ accessToken: string; taskID: string }>
-  ): Promise<void> {
-    const { accessToken, taskID } = ev.payload.settings;
+  async onKeyDown(ev: KeyDownEvent<TrackingSettings>): Promise<void> {
+    const { taskID } = await ev.action.getSettings();
+    const { accessToken } =
+      await streamDeck.settings.getGlobalSettings<GlobalSettings>();
 
     try {
       const response = await request<{
@@ -159,7 +172,7 @@ export class StartTracking extends SingletonAction {
         response.currentTracking &&
         taskID === response.currentTracking?.task.id
       ) {
-        await this.stopCurrentTracking(ev.payload.settings, ev.action);
+        await this.stopCurrentTracking(ev.action);
       } else {
         await request({
           url: "http://localhost:3000/api/graphql",
@@ -172,6 +185,6 @@ export class StartTracking extends SingletonAction {
       console.log(error);
     }
 
-    await this.updateCurrentTrackingTitle(ev.payload.settings, ev.action);
+    await this.updateCurrentTrackingTitle();
   }
 }

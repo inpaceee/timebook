@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -8,6 +8,19 @@
       href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css"
     />
     <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
+    <script>
+      function setGlobalSettings() {
+        const accessToken = document.getElementById("accessToken").value;
+        if (websocket && websocket.readyState === 1) {
+          const json = {
+            event: "setSettings",
+            context: uuid,
+            payload: { accessToken },
+          };
+          websocket.send(JSON.stringify(json));
+        }
+      }
+    </script>
   </head>
 
   <body>
@@ -25,15 +38,15 @@
       <div class="sdpi-item">
         <div class="sdpi-item-label">Access token</div>
         <input
-          oninput="setSettings()"
+          oninput="setGlobalSettings()"
           class="sdpi-item-value sdProperty"
           id="accessToken"
           value=""
           placeholder="Enter your access token"
         />
-      </div>
+      </div> -->
 
-      <!-- <div type="select" class="sdpi-item">
+<!-- <div type="select" class="sdpi-item">
         <div class="sdpi-item-label">Change Value</div>
         <select
           class="sdpi-item-value select setvalueSelect"
@@ -69,6 +82,25 @@
           <option value="actionDefaultImage_blue">Blue Background</option>
         </select>
       </div> -->
-    </div>
+
+<!-- </div>
+  </body>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+  <head lang="en">
+    <meta charset="utf-8" />
+    <title>net.progwise.timebook PI</title>
+    <script src="https://cdn.jsdelivr.net/gh/geekyeggo/sdpi-components@v2/dist/sdpi-components.js"></script>
+  </head>
+  <body>
+    <sdpi-item label="Task ID">
+      <sdpi-textfield setting="taskID"></sdpi-textfield>
+    </sdpi-item>
+
+    <sdpi-item label="Access Token">
+      <sdpi-textfield setting="accessToken" global></sdpi-textfield>
+    </sdpi-item>
   </body>
 </html>
