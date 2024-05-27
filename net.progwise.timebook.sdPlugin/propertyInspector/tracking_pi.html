@@ -93,14 +93,35 @@
     <meta charset="utf-8" />
     <title>net.progwise.timebook PI</title>
     <script src="https://cdn.jsdelivr.net/gh/geekyeggo/sdpi-components@v2/dist/sdpi-components.js"></script>
+    <script>
+      (async function () {
+        const info = await SDPIComponents.streamDeckClient.getConnectionInfo();
+        console.log(info);
+        SDPIComponents.streamDeckClient.sendToPropertyInspector.subscribe(
+          console.log
+        );
+      })();
+    </script>
   </head>
   <body>
-    <sdpi-item label="Task ID">
-      <sdpi-textfield setting="taskID"></sdpi-textfield>
-    </sdpi-item>
+    <sdpi-wrapper>
+      <!-- <sdpi-item label="Task ID">
+        <sdpi-textfield setting="taskID"></sdpi-textfield>
+      </sdpi-item> -->
 
-    <sdpi-item label="Access Token">
-      <sdpi-textfield setting="accessToken" global></sdpi-textfield>
-    </sdpi-item>
+      <sdpi-item label="Access Token">
+        <sdpi-textfield setting="accessToken" global></sdpi-textfield>
+      </sdpi-item>
+
+      <!-- <label for="project-select">Select project:</label> -->
+      <sdpi-item label="Task">
+        <sdpi-select
+          setting="taskID"
+          datasource="sendProjects"
+          loading="Fetching projects..."
+          hot-reload
+        ></sdpi-select>
+      </sdpi-item>
+    </sdpi-wrapper>
   </body>
 </html>

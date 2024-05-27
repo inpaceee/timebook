@@ -57,6 +57,18 @@ const CurrentTaskTitleDocument = gql`
   }
 `;
 
+const MyProjectsQueryDocument = gql`
+  query myProjects($from: Date!) {
+    projects(from: $from) {
+      title
+      tasks {
+        id
+        title
+      }
+    }
+  }
+`;
+
 type TrackingSettings = {
   taskID: string;
   taskTitle?: string;
@@ -66,18 +78,24 @@ type GlobalSettings = {
   accessToken: string;
 };
 
-// const endpoint = ''
-// const client = new GraphQLClient(endpoint)
-// await client.request(document)
+type Project = {
+  title: string;
+  tasks: {
+    id: string;
+    title: string;
+  }[];
+};
 
 @action({ UUID: "net.progwise.timebook.tracking" })
 export class StartTracking extends SingletonAction<TrackingSettings> {
   private interval?: NodeJS.Timeout;
   private activeButtons = new Map<string, Action<TrackingSettings>>();
+  private projects: Project[] = [];
 
   async onWillAppear(ev: WillAppearEvent<TrackingSettings>): Promise<void> {
     const { taskID } = await ev.action.getSettings();
-    // ev.action.sendToPropertyInspector()
+
+    // ev.action.sendToPropertyInspector({ taskID });
     const { accessToken } =
       await streamDeck.settings.getGlobalSettings<GlobalSettings>();
     await request<{
@@ -88,6 +106,32 @@ export class StartTracking extends SingletonAction<TrackingSettings> {
       requestHeaders: { authorization: `ApiKey ${accessToken}` },
       variables: { taskId: taskID },
     });
+
+    const projectsResponse = await request<{
+      projects: Project[];
+    }>({
+      url: "http://localhost:3000/api/graphql",
+      document: MyProjectsQueryDocument,
+      requestHeaders: { authorization: `ApiKey ${accessToken}` },
+      variables: { from: "2024-05-24" },
+    });
+
+    const projects = projectsResponse.projects.map((project) => ({
+      label: project.title,
+      children: project.tasks.map((task) => ({
+        label: task.title,
+        value: task.id,
+      })),
+    }));
+
+    this.projects = projectsResponse.projects;
+
+    setTimeout(async () => {
+      await ev.action.sendToPropertyInspector<DataSourcePayload>({
+        event: "sendProjects",
+        items: projects,
+      });
+    }, 1500);
 
     if (this.activeButtons.size === 0) {
       console.log("create interval");
@@ -126,12 +170,15 @@ export class StartTracking extends SingletonAction<TrackingSettings> {
       : undefined;
 
     for (const action of this.activeButtons.values()) {
-      const { taskID, taskTitle } = await action.getSettings();
+      const { taskID } = await action.getSettings();
+      const taskTitle = this.projects
+        .flatMap((project) => project.tasks)
+        .find((task) => taskID === task.id)?.title;
       if (startDate && taskID === response.currentTracking?.task.id) {
         const newDifference = differenceInSeconds(new Date(), startDate);
         action.setTitle(`${taskTitle}\n${getDurationString(newDifference)}`);
       } else {
-        action.setTitle("Not\ntracking");
+        action.setTitle(taskTitle);
       }
     }
   }
@@ -151,7 +198,7 @@ export class StartTracking extends SingletonAction<TrackingSettings> {
       document: StopTrackingMutationDocument,
       requestHeaders: { authorization: `ApiKey ${accessToken}` },
     });
-    action.setTitle("Not\n tracking");
+    action.setTitle("Not\ntracking");
   }
 
   async onKeyDown(ev: KeyDownEvent<TrackingSettings>): Promise<void> {
