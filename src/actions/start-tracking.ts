@@ -1,6 +1,7 @@
 import streamDeck, {
   Action,
   KeyDownEvent,
+  PropertyInspectorDidAppearEvent,
   SingletonAction,
   WillAppearEvent,
   WillDisappearEvent,
@@ -8,6 +9,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 import {
   differenceInSeconds,
+  formatISO,
   minutesToHours,
   parseISO,
   secondsToMinutes,
@@ -107,37 +109,11 @@ export class StartTracking extends SingletonAction<TrackingSettings> {
       variables: { taskId: taskID },
     });
 
-    const projectsResponse = await request<{
-      projects: Project[];
-    }>({
-      url: "http://localhost:3000/api/graphql",
-      document: MyProjectsQueryDocument,
-      requestHeaders: { authorization: `ApiKey ${accessToken}` },
-      variables: { from: "2024-05-24" },
-    });
-
-    const projects = projectsResponse.projects.map((project) => ({
-      label: project.title,
-      children: project.tasks.map((task) => ({
-        label: task.title,
-        value: task.id,
-      })),
-    }));
-
-    this.projects = projectsResponse.projects;
-
-    setTimeout(async () => {
-      await ev.action.sendToPropertyInspector<DataSourcePayload>({
-        event: "sendProjects",
-        items: projects,
-      });
-    }, 1500);
-
     if (this.activeButtons.size === 0) {
-      console.log("create interval");
       this.interval = setInterval(async () => {
         await this.updateCurrentTrackingTitle();
       }, 1000);
+      await this.fetchProjects(ev.action);
     }
     this.activeButtons.set(ev.action.id, ev.action);
   }
@@ -233,5 +209,45 @@ export class StartTracking extends SingletonAction<TrackingSettings> {
     }
 
     await this.updateCurrentTrackingTitle();
+  }
+
+  async onPropertyInspectorDidAppear(
+    ev: PropertyInspectorDidAppearEvent<TrackingSettings>
+  ): Promise<void> {
+    await ev.action.sendToPropertyInspector<DataSourcePayload>({
+      event: "sendProjects",
+      items: this.projects.map((project) => ({
+        label: project.title,
+        children: project.tasks.map((task) => ({
+          label: task.title,
+          value: task.id,
+        })),
+      })),
+    });
+  }
+
+  private async fetchProjects(action: Action<TrackingSettings>) {
+    const { taskID } = await action.getSettings();
+    const { accessToken } =
+      await streamDeck.settings.getGlobalSettings<GlobalSettings>();
+    await request<{
+      task: { title: string; id: string } | null;
+    }>({
+      url: "http://localhost:3000/api/graphql",
+      document: CurrentTaskTitleDocument,
+      requestHeaders: { authorization: `ApiKey ${accessToken}` },
+      variables: { taskId: taskID },
+    });
+
+    const projectsResponse = await request<{
+      projects: Project[];
+    }>({
+      url: "http://localhost:3000/api/graphql",
+      document: MyProjectsQueryDocument,
+      requestHeaders: { authorization: `ApiKey ${accessToken}` },
+      variables: { from: formatISO(new Date(), { representation: "date" }) },
+    });
+
+    this.projects = projectsResponse.projects;
   }
 }
